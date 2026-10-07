@@ -10,8 +10,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("🎓 Government Polytechnic College, Nedumkandam")
-st.subheader("Department Internal Marks Portal")
+st.title("Fundamentals of Engineering Mathematics(1002) - Internal Marks")
 
 # ---------------------------------------------------------
 # CONFIGURATION: Map your classes to their Google Sheet IDs
