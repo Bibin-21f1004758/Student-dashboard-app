@@ -28,13 +28,15 @@ selected_class = st.sidebar.selectbox("Select Your Class", list(CLASS_SHEETS.key
 sheet_id = CLASS_SHEETS[selected_class]
 
 
-# Function to fetch and clean data live from Google Sheets safely
+# Function to fetch the horizontal class list sheet reliably from Google Sheets
 @st.cache_data(ttl=60)  # Refreshes data automatically every 60 seconds
 def load_google_sheet(s_id):
-  url = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv"
+  # gid=0 or export the second sheet/horizontal table (Sheet1)
+  # We use gid=0 for the main table sheet or export CSV format
+  url = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv&gid=0"
   raw_df = pd.read_csv(url, header=None)
 
-  # Find the row index where header terms ('Name' and 'Roll') are located safely
+  # Find the row index where header terms ('Name' and 'Roll number') are located
   header_row_idx = None
   for idx, row in raw_df.iterrows():
     row_str_values = [str(val) for val in row.values if pd.notna(val)]
@@ -47,13 +49,14 @@ def load_google_sheet(s_id):
     df = raw_df.iloc[header_row_idx + 1 :].copy()
     df.columns = raw_df.iloc[header_row_idx].values
     df = df.loc[:, df.columns.notna()]  # Drop NaN columns
-    # Find name column dynamically to drop rows missing names
-    cols = [str(c).strip() for c in df.columns]
-    name_col = next(
-        (c for c in cols if "name" in c.lower()),
-        cols[1] if len(cols) > 1 else cols[0],
-    )
+    # Clean column names
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # Identify Name column and filter out rows where Name is missing or NaN
+    name_col = next((c for c in df.columns if "name" in c.lower()), "Name")
     df = df.dropna(subset=[name_col])
+    # Filter out any accidental header repetitions or non-student rows
+    df = df[df[name_col].astype(str).str.lower() != "name"]
     return df
   else:
     return pd.read_csv(url)
@@ -72,18 +75,19 @@ else:
     # Clean up column names representation
     df.columns = [str(c).strip() for c in df.columns]
 
-    # Identify Name column dynamically
+    # Identify Name and Roll number columns dynamically
     name_col = next(
-        (c for c in df.columns if "name" in c.lower()), df.columns[1]
+        (c for c in df.columns if "name" in c.lower()), "Name"
     )
     roll_col = next(
-        (c for c in df.columns if "roll" in c.lower()), df.columns[0]
+        (c for c in df.columns if "roll" in c.lower()), "Roll number"
     )
 
     st.markdown(f"### 📚 Class: `{selected_class}`")
 
-    # Get all student names into the dropdown list
+    # Get clean list of all student names (ignoring numbers/NaNs)
     student_names = df[name_col].dropna().astype(str).tolist()
+    student_names = [name for name in student_names if name.strip() != ""]
 
     selected_student = st.selectbox(
         "🔍 Select Your Name from the List:",
@@ -97,7 +101,7 @@ else:
       st.markdown("---")
       st.success(f"Displaying records for: **{selected_student}**")
 
-      # Map horizontal row data into the exact vertical Student View card format requested
+      # Map horizontal row data into the exact vertical Student View card format
       vertical_data = {
           "Mark Component": [
               "Roll Number",
@@ -154,7 +158,7 @@ else:
 
       vertical_df = pd.DataFrame(vertical_data)
 
-      # Display the vertical mark sheet table matching the reference image layout
+      # Display the vertical mark sheet table matching your desired card layout
       st.markdown("#### 📋 Student Mark Splitup")
       st.dataframe(vertical_df, use_container_width=True, hide_index=True)
 
