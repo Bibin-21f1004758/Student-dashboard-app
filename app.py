@@ -22,9 +22,11 @@ CLASS_SHEETS = {
     "EL (Electronics Engineering)": "14spEFMoW9nDF7ierOQSzUYlcLemh53hH5ksGdqqa9lk",
 }
 
-# Sidebar: Class selection
-st.sidebar.header("Student Portal")
-selected_class = st.sidebar.selectbox("Select Your Class", list(CLASS_SHEETS.keys()))
+# Main Screen: Class selection
+st.markdown("### 🏫 Select Your Class")
+selected_class = st.selectbox(
+    "Choose your department/class:", list(CLASS_SHEETS.keys())
+)
 sheet_id = CLASS_SHEETS[selected_class]
 
 
@@ -83,7 +85,7 @@ else:
         (c for c in df.columns if "roll" in c.lower()), "Roll number"
     )
 
-    st.markdown(f"### 📚 Class: `{selected_class}`")
+    st.markdown("---")
 
     # Get clean list of all student names (ignoring numbers/NaNs)
     student_names = df[name_col].dropna().astype(str).tolist()
