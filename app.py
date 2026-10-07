@@ -101,7 +101,7 @@ else:
       st.markdown("---")
       st.success(f"Displaying records for: **{selected_student}**")
 
-      # Map horizontal row data into the exact vertical Student View card format
+      # Map horizontal row data into the main vertical Student View card format (excluding converted marks)
       vertical_data = {
           "Mark Component": [
               "Roll Number",
@@ -112,13 +112,7 @@ else:
               "CA4 / Self Learning-4 (15)",
               "CA5 / SERIES-1 (50)",
               "CA6 / SERIES-2 (50)",
-              "SERIES-1 CONVERTED (20)",
-              "SERIES-2 CONVERTED (20)",
               "ATTENDANCE (%)",
-              "ATTENDANCE (5)",
-              "SELF LEARNING (15)",
-              "SERIES (20)",
-              "TOTAL (40)",
           ],
           "Mark / Details": [
               student_row.get(roll_col, "N/A"),
@@ -134,16 +128,26 @@ else:
                   "SERIES-2(50)", student_row.get("SERIES-2 (50)", "N/A")
               ),
               student_row.get(
-                  "SERIES-1 CONVERTED(20)",
-                  student_row.get("SERIES-1 CONVERTED (20)", "N/A"),
-              ),
-              student_row.get(
-                  "SERIES-2 CONVERTED(20)",
-                  student_row.get("SERIES-2 CONVERTED (20)", "N/A"),
-              ),
-              student_row.get(
                   "ATTENDANCE(%)", student_row.get("ATTENDANCE (%)", "N/A")
               ),
+          ],
+      }
+
+      vertical_df = pd.DataFrame(vertical_data)
+
+      # Display the main vertical mark sheet table
+      st.markdown("#### 📋 Student Mark Splitup")
+      st.dataframe(vertical_df, use_container_width=True, hide_index=True)
+
+      # Create a separate summary table for final components
+      summary_data = {
+          "Final Component": [
+              "ATTENDANCE (5)",
+              "SELF LEARNING (15)",
+              "SERIES (20)",
+              "TOTAL (40)",
+          ],
+          "Marks Obtained": [
               student_row.get(
                   "ATTENDANCE(5)", student_row.get("ATTENDANCE (5)", "N/A")
               ),
@@ -156,11 +160,10 @@ else:
           ],
       }
 
-      vertical_df = pd.DataFrame(vertical_data)
+      summary_df = pd.DataFrame(summary_data)
 
-      # Display the vertical mark sheet table matching your desired card layout
-      st.markdown("#### 📋 Student Mark Splitup")
-      st.dataframe(vertical_df, use_container_width=True, hide_index=True)
+      st.markdown("#### 🏆 Final Internal Score Summary")
+      st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
   except Exception as e:
     st.error(
