@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Fundamentals of Engineering Mathematics(1002) - Internal Marks")
+
 
 # ---------------------------------------------------------
 # CONFIGURATION: Map your classes to their Google Sheet IDs
