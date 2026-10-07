@@ -37,7 +37,6 @@ def load_google_sheet(s_id):
   # Find the row index where header terms ('Name' and 'Roll') are located safely
   header_row_idx = None
   for idx, row in raw_df.iterrows():
-    # Convert row values to string safely, ignoring NaNs/floats
     row_str_values = [str(val) for val in row.values if pd.notna(val)]
     joined_row = " ".join(row_str_values)
     if "Name" in joined_row and ("Roll" in joined_row or "roll" in joined_row):
@@ -50,7 +49,10 @@ def load_google_sheet(s_id):
     df = df.loc[:, df.columns.notna()]  # Drop NaN columns
     # Find name column dynamically to drop rows missing names
     cols = [str(c).strip() for c in df.columns]
-    name_col = next((c for c in cols if "name" in c.lower()), cols[1] if len(cols) > 1 else cols[0])
+    name_col = next(
+        (c for c in cols if "name" in c.lower()),
+        cols[1] if len(cols) > 1 else cols[0],
+    )
     df = df.dropna(subset=[name_col])
     return df
   else:
@@ -69,8 +71,8 @@ else:
 
     # Clean up column names representation
     df.columns = [str(c).strip() for c in df.columns]
-    
-    # Identify Name and Roll number columns dynamically
+
+    # Identify Name column dynamically
     name_col = next(
         (c for c in df.columns if "name" in c.lower()), df.columns[1]
     )
@@ -95,35 +97,66 @@ else:
       st.markdown("---")
       st.success(f"Displaying records for: **{selected_student}**")
 
-      # Display key metric summary cards
-      col1, col2, col3 = st.columns(3)
-      with col1:
-        roll_val = student_row.get(roll_col, "N/A")
-        st.metric(label="Roll Number", value=str(roll_val))
+      # Map horizontal row data into the exact vertical Student View card format requested
+      vertical_data = {
+          "Mark Component": [
+              "Roll Number",
+              "Student Name",
+              "CA1 / Self Learning-1 (15)",
+              "CA2 / Self Learning-2 (15)",
+              "CA3 / Self Learning-3 (15)",
+              "CA4 / Self Learning-4 (15)",
+              "CA5 / SERIES-1 (50)",
+              "CA6 / SERIES-2 (50)",
+              "SERIES-1 CONVERTED (20)",
+              "SERIES-2 CONVERTED (20)",
+              "ATTENDANCE (%)",
+              "ATTENDANCE (5)",
+              "SELF LEARNING (15)",
+              "SERIES (20)",
+              "TOTAL (40)",
+          ],
+          "Mark / Details": [
+              student_row.get(roll_col, "N/A"),
+              student_row.get(name_col, "N/A"),
+              student_row.get("SL-1(15)", student_row.get("SL-1 (15)", "N/A")),
+              student_row.get("SL-2(15)", student_row.get("SL-2 (15)", "N/A")),
+              student_row.get("SL-3(15)", student_row.get("SL-3 (15)", "N/A")),
+              student_row.get("SL-4(15)", student_row.get("SL-4 (15)", "N/A")),
+              student_row.get(
+                  "SERIES-1(50)", student_row.get("SERIES-1 (50)", "N/A")
+              ),
+              student_row.get(
+                  "SERIES-2(50)", student_row.get("SERIES-2 (50)", "N/A")
+              ),
+              student_row.get(
+                  "SERIES-1 CONVERTED(20)",
+                  student_row.get("SERIES-1 CONVERTED (20)", "N/A"),
+              ),
+              student_row.get(
+                  "SERIES-2 CONVERTED(20)",
+                  student_row.get("SERIES-2 CONVERTED (20)", "N/A"),
+              ),
+              student_row.get(
+                  "ATTENDANCE(%)", student_row.get("ATTENDANCE (%)", "N/A")
+              ),
+              student_row.get(
+                  "ATTENDANCE(5)", student_row.get("ATTENDANCE (5)", "N/A")
+              ),
+              student_row.get(
+                  "SELF LEARNING(15)",
+                  student_row.get("SELF LEARNING (15)", "N/A"),
+              ),
+              student_row.get("SERIES(20)", student_row.get("SERIES (20)", "N/A")),
+              student_row.get("TOTAL(40)", student_row.get("TOTAL (40)", "N/A")),
+          ],
+      }
 
-      with col2:
-        att_col = next(
-            (c for c in df.columns if "att" in c.lower() and "%" in c), None
-        )
-        att_val = student_row.get(att_col, "N/A") if att_col else "N/A"
-        st.metric(label="Attendance (%)", value=str(att_val))
+      vertical_df = pd.DataFrame(vertical_data)
 
-      with col3:
-        tot_col = next(
-            (c for c in df.columns if "total" in c.lower()), None
-        )
-        tot_val = student_row.get(tot_col, "N/A") if tot_col else "N/A"
-        st.metric(label="Total Mark", value=str(tot_val))
-
-      # Display student's mark breakdown table
-      st.markdown("#### 📋 Detailed Mark Breakdown")
-      breakdown_df = pd.DataFrame(
-          {
-              "Component / Subject": student_row.index,
-              "Marks Obtained": student_row.values,
-          }
-      )
-      st.dataframe(breakdown_df, use_container_width=True, hide_index=True)
+      # Display the vertical mark sheet table matching the reference image layout
+      st.markdown("#### 📋 Student Mark Splitup")
+      st.dataframe(vertical_df, use_container_width=True, hide_index=True)
 
   except Exception as e:
     st.error(
