@@ -28,33 +28,32 @@ selected_class = st.sidebar.selectbox("Select Your Class", list(CLASS_SHEETS.key
 sheet_id = CLASS_SHEETS[selected_class]
 
 
-# Function to fetch and clean data live from Google Sheets
+# Function to fetch and clean data live from Google Sheets safely
 @st.cache_data(ttl=60)  # Refreshes data automatically every 60 seconds
 def load_google_sheet(s_id):
   url = f"https://docs.google.com/spreadsheets/d/{s_id}/export?format=csv"
-  # Read raw without assuming header row immediately
   raw_df = pd.read_csv(url, header=None)
 
-  # Find the row index where 'Name' or 'Roll number' is located
+  # Find the row index where header terms ('Name' and 'Roll') are located safely
   header_row_idx = None
   for idx, row in raw_df.iterrows():
-    row_str_values = row.astype(str).values
-    if any("Name" in val for val in row_str_values) and any(
-        "Roll" in val for val in row_str_values
-    ):
+    # Convert row values to string safely, ignoring NaNs/floats
+    row_str_values = [str(val) for val in row.values if pd.notna(val)]
+    joined_row = " ".join(row_str_values)
+    if "Name" in joined_row and ("Roll" in joined_row or "roll" in joined_row):
       header_row_idx = idx
       break
 
   if header_row_idx is not None:
-    # Set headers and slice dataframe to contain student data only
     df = raw_df.iloc[header_row_idx + 1 :].copy()
     df.columns = raw_df.iloc[header_row_idx].values
-    # Clean up columns and drop rows where Name or Roll number is missing
-    df = df.loc[:, df.columns.notna()]
-    df = df.dropna(subset=[df.columns[1]])  # Assuming column 1 is Name
+    df = df.loc[:, df.columns.notna()]  # Drop NaN columns
+    # Find name column dynamically to drop rows missing names
+    cols = [str(c).strip() for c in df.columns]
+    name_col = next((c for c in cols if "name" in c.lower()), cols[1] if len(cols) > 1 else cols[0])
+    df = df.dropna(subset=[name_col])
     return df
   else:
-    # Fallback to standard read if header isn't found
     return pd.read_csv(url)
 
 
@@ -68,13 +67,15 @@ else:
   try:
     df = load_google_sheet(sheet_id)
 
+    # Clean up column names representation
+    df.columns = [str(c).strip() for c in df.columns]
+    
     # Identify Name and Roll number columns dynamically
-    columns_list = [str(c).strip() for c in df.columns]
     name_col = next(
-        (c for c in columns_list if "name" in c.lower()), columns_list[1]
+        (c for c in df.columns if "name" in c.lower()), df.columns[1]
     )
     roll_col = next(
-        (c for c in columns_list if "roll" in c.lower()), columns_list[0]
+        (c for c in df.columns if "roll" in c.lower()), df.columns[0]
     )
 
     st.markdown(f"### 📚 Class: `{selected_class}`")
@@ -101,17 +102,15 @@ else:
         st.metric(label="Roll Number", value=str(roll_val))
 
       with col2:
-        # Find attendance percentage column dynamically
         att_col = next(
-            (c for c in columns_list if "att" in c.lower() and "%" in c), None
+            (c for c in df.columns if "att" in c.lower() and "%" in c), None
         )
         att_val = student_row.get(att_col, "N/A") if att_col else "N/A"
         st.metric(label="Attendance (%)", value=str(att_val))
 
       with col3:
-        # Find total mark column dynamically
         tot_col = next(
-            (c for c in columns_list if "total" in c.lower()), None
+            (c for c in df.columns if "total" in c.lower()), None
         )
         tot_val = student_row.get(tot_col, "N/A") if tot_col else "N/A"
         st.metric(label="Total Mark", value=str(tot_val))
