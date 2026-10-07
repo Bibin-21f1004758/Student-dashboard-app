@@ -10,7 +10,8 @@ st.set_page_config(
     layout="wide",
 )
 
-
+st.title(" Government Polytechnic College, Nedumkandam")
+st.subheader("Fundamentals of Engineering Mathematics(1002")
 
 # ---------------------------------------------------------
 # CONFIGURATION: Map your classes to their Google Sheet IDs
